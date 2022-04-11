@@ -142,21 +142,17 @@ def find_gcd_extend_iter(a,b):
     x1 = 0
     y1= 1
     while(a!= 0):
-        a = b%a
-        b=a
-        y0 = y1
-        y1 = y0-(b//a)*y1
-        x0 = x1
-        x1 = x0-(b//a)*x1
-        
-
-    if(a == 0):
-        return [b,0,1]
-    result = find_gcd_extend(b%a,a)
-    gcd = result[0]
-    x = result[2] + (b//a)*result[1]
-    y = result[1]
-    return [gcd,x,y]
+        q = b/a
+        r = b%a
+        b = a
+        a = r
+        old_x1 = x1
+        old_y1 = y1
+        y1 = y0 - q*y1
+        y0 = old_y1
+        x1 = x0 - q*x1
+        x0 = old_x1
+    return [b,x0,y0]
 
 def is_rel_prime(num1,num2):
     gcd = find_gcd(num1,num2)
