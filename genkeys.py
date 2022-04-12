@@ -42,9 +42,6 @@ def gen_odd(size):
     # print("M - get a random: ",r)
     return r
 
-def miller_rabin(num,iter):
-    print()
-
 # (x^y)%p in O(log y)
 def mod_exp(x,y,p):
     result = 1
@@ -115,63 +112,39 @@ def gen_ran(size):
     r = random.SystemRandom().randrange(start, stop)
     # print("M - get a random: ",r)
     return r
-
-def find_gcd(num1,num2):
-    # assume num1 > num2
-    if(num1 == 0):
-        return num2
-    if(num2 == 0):
-        return num1
-    return find_gcd(num2,num1%num2)
     
-def find_gcd_extend(a,b):
-    # ax+by = gcd(a,b)
-    if(a == 0):
-        return [b,0,1]
-    result = find_gcd_extend(b%a,a)
-    gcd = result[0]
-    x = result[2] + (b//a)*result[1]
-    y = result[1]
-    return [gcd,x,y]
+# def find_gcd_extend(a,b):
+#     # ax+by = gcd(a,b)
+#     if(a == 0):
+#         return [b,0,1]
+#     result = find_gcd_extend(b%a,a)
+#     gcd = result[0]
+#     x = result[2] + (b//a)*result[1]
+#     y = result[1]
+#     return [gcd,x,y]
 
-
+#5
 def find_gcd_extend_iter(a,b):
     # ax+by = gcd(a,b)
-    x0 = 1
-    y0 = 0
-    x1 = 0
-    y1= 1
-    while(a!= 0):
-        q = b/a
-        r = b%a
-        b = a
-        a = r
-        old_x1 = x1
-        old_y1 = y1
-        y1 = y0 - q*y1
-        y0 = old_y1
-        x1 = x0 - q*x1
-        x0 = old_x1
-    return [b,x0,y0]
-
-def is_rel_prime(num1,num2):
-    gcd = find_gcd(num1,num2)
-    # print("M - find gcd: ",gcd)
-    return (gcd == 1)
+    # return (g,x,y)
+    x0,x1,y0,y1 = 1, 0, 0, 1
+    while (b!=0):
+        q = a//b
+        x0, x1 = x1, x0-q*x1
+        y0, y1 = y1,y0-q*y1
+        a, b = b, a - q*b
+    return [abs(x0),y0] # a is e, x0 is d
     
+#4    
 def gen_e(phi_n):
     # loop
     # generate a number, find if it is rel prime with phiN, is, return
     find_e = False
-    # result = []
     num = 0
     while(not find_e):
         num = gen_ran(phi_n)
-        # # find_e = is_rel_prime(phi_n, r)
-        # result = find_gcd_extend(phi_n,r)
         if(math.gcd(phi_n,num)==1):
             find_e = True
-            # result.insert(0,r)
     return num
 
 '''
@@ -196,15 +169,14 @@ def gen_key_pair():
     phi_n = (prime_p-1)*(prime_q-1)
     print("M - get p: ",prime_p," q: ", prime_q," n: ", n," phi n: ", phi_n)
     
-    # # 3 find e rel. prime to (p-1)(q-1)
-    # get_gcd_e_d = gen_e(phi_n)
-    # print("M - get gcd_e_d: ", get_gcd_e_d[0], " ", get_gcd_e_d[1], " ",get_gcd_e_d[2], " ",get_gcd_e_d[3])
-    rel_prime_e = gen_e(phi_n) # get_gcd_e_d[0]
+    rel_prime_e = gen_e(phi_n)
     print("M - get e: ", rel_prime_e)
     public_key = [rel_prime_e,n]
+
     # # 4 find d (inverse, using Pulverizer)
-    gcd_ex = find_gcd_extend(rel_prime_e,phi_n)
-    eInverse_d = gcd_ex[1]
+    gcd_ex = find_gcd_extend_iter(rel_prime_e,phi_n)
+    # print(gcd_ex)
+    eInverse_d = gcd_ex[0]
     private_key = [eInverse_d,n]
     return public_key,private_key
     
@@ -230,3 +202,4 @@ def main():
     output_key_pair(public_key,private_key,input_name)
     
 main()
+# python ./genkeys.py alice
