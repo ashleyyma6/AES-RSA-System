@@ -36,9 +36,9 @@ import random
 # 2
 def gen_odd(size):
     # prime is odd, except 2
-    start = pow(2, size-1)+1
-    stop = pow(2,size)
-    r = random.SystemRandom().randrange(start, stop, 2)
+    r = random.getrandbits(size)
+    if r%2==0:
+        r+=1
     # print("M - get a random: ",r)
     return r
 
@@ -62,7 +62,7 @@ def fermat(num, iter):
     # a^(n-1) != 1 (mod n), false
     for i in range(iter):
         random_num = random.SystemRandom().randrange(2, num-2)
-        if( mod_exp(random_num,num-1,num) != 1):
+        if(mod_exp(random_num,num-1,num) != 1):
             return False
     return True
 
@@ -112,16 +112,6 @@ def gen_ran(size):
     r = random.SystemRandom().randrange(start, stop)
     # print("M - get a random: ",r)
     return r
-    
-# def find_gcd_extend(a,b):
-#     # ax+by = gcd(a,b)
-#     if(a == 0):
-#         return [b,0,1]
-#     result = find_gcd_extend(b%a,a)
-#     gcd = result[0]
-#     x = result[2] + (b//a)*result[1]
-#     y = result[1]
-#     return [gcd,x,y]
 
 #5
 def find_gcd_extend_iter(a,b):
@@ -133,7 +123,8 @@ def find_gcd_extend_iter(a,b):
         x0, x1 = x1, x0-q*x1
         y0, y1 = y1,y0-q*y1
         a, b = b, a - q*b
-    return [abs(x0),y0] # a is e, x0 is d
+    # a is e, x0 is d
+    return [abs(x0),y0] 
     
 #4    
 def gen_e(phi_n):
@@ -173,7 +164,7 @@ def gen_key_pair():
     print("M - get e: ", rel_prime_e)
     public_key = [rel_prime_e,n]
 
-    # # 4 find d (inverse, using Pulverizer)
+    # 4 find d (inverse, using Pulverizer)
     gcd_ex = find_gcd_extend_iter(rel_prime_e,phi_n)
     # print(gcd_ex)
     eInverse_d = gcd_ex[0]
@@ -197,7 +188,6 @@ def main():
     if(len(sys.argv)>1):
         input_name = sys.argv[1]
         # print("M - get input: ",input_name)
-    # gen_key_pair()
     public_key, private_key = gen_key_pair()
     output_key_pair(public_key,private_key,input_name)
     

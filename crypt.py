@@ -9,7 +9,7 @@ encrypt and decrypt data using AES-128 and RSA.
         ./crypt.py -d alice.prv secret.cip secret.txt
 2. To encrypt a file, the program must generate a random key K for AES-128 
     using random.SystemRandom or os.urandom(), 
-    use the key K with AES-128 to encrypt the data fro m the input file, 
+    use the key K with AES-128 to encrypt the data from the input file, 
     use RSA with the public key file specified on the command line to encrypt K 
     (we refer to the encrypted K as K’ in the following), 
     and write the encrypted data and K’ to the output file. 
@@ -26,70 +26,98 @@ A random key -> AES-128 EN/DE
 random key -> RSA EN/DE
 """
 
+import math
 from pydoc import plain
 import random
+from string import ascii_letters, ascii_uppercase
 import sys
 from Crypto.Cipher import AES
+from Crypto.Random import get_random_bytes
+from Crypto.Util.Padding import pad, unpad
 
 def gen_aes_key(size):
-    start = pow(2, size-1)
-    stop = pow(2,size)
-    r = random.SystemRandom().randrange(start, stop)
-    return r
+    # size = bytes
+    key = ''
+    for i in range(size):
+        key+=random.choice(ascii_letters)
+    return key.encode()
     
 def encryption(RSA_key,txt_input):
-    AES_KEY = gen_aes_key(128)
+    AES_KEY = gen_aes_key(16) # get_random_bytes(16)  128 bits = 16 bytes
+    # print(AES_KEY)
     ciphertext = AES_encrypt(AES_KEY,txt_input)
     encrypted_AES_key = RSA_encrypt(RSA_key,AES_KEY)
     return [ciphertext,encrypted_AES_key]
 
 def decryption(RSA_key,input):
+    # input = [ciphertext,encrypted AES key]
     AES_KEY = RSA_decrypt(RSA_key,input[1])
     plaintext = AES_decrypt(AES_KEY,input[0])
-    return [plaintext]
+    return plaintext
 
 def AES_encrypt(key, message):
-    # key = 'abcdefghijklmnop'
+    pad_m = pad(message.encode(),16)
     cipher = AES.new(key, AES.MODE_ECB)
-    ciphertext = cipher.encrypt(message)
-    ciphertext = ciphertext.encode("hex")
+    ciphertext = cipher.encrypt(pad_m)
+    ciphertext = int.from_bytes(ciphertext,'big')
     return ciphertext
 
 def AES_decrypt(key, ciphertext):
-    # key = 'abcdefghijklmnop'
     decipher = AES.new(key, AES.MODE_ECB)
-    plaintext = decipher.decrypt(ciphertext)
-    return plaintext
+    byte_p = ciphertext.to_bytes((ciphertext.bit_length()+7) // 8,'big')
+    # print(byte_p)
+    pad_p = decipher.decrypt(byte_p)
+    unpad_p = unpad(pad_p,16)
+    # print(unpad_p)
+    return unpad_p
 
-def RSA_encrypt(pub_key,message):
-    # key = pub key [n,e]
-    ciphertext = pow(message,pub_key[1])%pub_key[0]
-    return ciphertext
+def RSA_encrypt(pub_key,aes_key):
+    # key = pub key [e,n]
+    int_key = int.from_bytes(aes_key,'big')
+    # print(int_key)
+    encrypted_key = pow(int_key,pub_key[0],pub_key[1])
+    return encrypted_key
 
 def RSA_decrypt(prv_key,ciphertext):
-    # key = prv key [n,d]
-    plaintext = pow(ciphertext,prv_key[1])%prv_key[0]
-    return plaintext
+    # key = prv key [d,n]
+    int_key = pow(ciphertext,prv_key[0],prv_key[1])
+    str_key = int_key.to_bytes((int_key.bit_length()+7) // 8,'big')
+    # print(str_key)
+    return str_key
 
 def load_key(key_file):
     key = []
     with open(key_file,'r') as f:
         lines = f.readlines()
         for line in lines:
-            key.append(line[:-1]) # remove \n
+            key.append(int(line[:-1])) # remove \n
     return key
 
-def load_file(input_file):
-    # assume only one line message?
+def load_plaintxt_file(input_file):
+    # assume only one line message
     with open(input_file,'r') as f:
-        lines = f.readlines
-        return lines
+        input = f.read()
+        return input
+
+def load_ciphertxt_file(input_file):
+    # assume only one line message
+    input = []
+    with open(input_file,'r') as f:
+        lines = f.readlines()
+        for line in lines:
+            input.append(int(line[:-1])) 
+        return input
 
 def write_to_file(output_file,output):
     with open(output_file,'w') as f:
         for item in output:
-            f.write(item)
+            f.write(str(item))
             f.write('\n')
+
+def write_pt_to_file(output_file,output):
+    with open("check_"+output_file,'w') as f:
+            f.write(output.decode())
+            # f.write('\n')
 
 def main():
     if(len(sys.argv)<5):
@@ -99,18 +127,27 @@ def main():
     input_file = sys.argv[3]
     output_file = sys.argv[4]
 
-    key = load_key(key_file) # [x,x]
-    input = load_file(input_file) # text
+    key = load_key(key_file) # pub[e,n]/prv[d,n]
+    # plaintext[text] / ciphertext[ciphertext,encrypted key]
+    # print(key)
 
     if(mode == '-e'):
-        # encryption: pub key, plaintext
-        # input is only plaintext
+        # encryption: pub key [e,n], plaintext
+        # input [plaintext] assume one line
+        # output ciphertext[ciphertext,encrypted key]
+        input = load_plaintxt_file(input_file)
+        print(input)
         encryption_output = encryption(key,input)
         write_to_file(output_file,encryption_output)
     else:
         # decryption: prv key, ciphertext
-        # input is [ciphertext,encrypted AES key]
+        # input [ciphertext,encrypted AES key]
+        # output [plaintext]
+        input = load_ciphertxt_file(input_file)
+        # print(input)
         decryption_output = decryption(key,input)
-        write_to_file(output_file,decryption_output)
+        write_pt_to_file(output_file,decryption_output)
    
 main()
+# python ./crypt.py -e alice.pub secret.txt secret.cip
+# python ./crypt.py -d alice.prv secret.cip secret.txt
