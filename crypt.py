@@ -91,7 +91,7 @@ def write_to_file(output_file,output):
 
 def write_pt_to_file(output_file,output):
     with open("check_"+output_file,'w') as f:
-            f.write(output.decode())
+            f.write(output)
 
 def main():
     if(len(sys.argv)<5):
